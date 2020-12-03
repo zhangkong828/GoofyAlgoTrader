@@ -11,7 +11,7 @@ namespace GoofyAlgoTrader
     public class Config
     {
         public static LoggerOptions LoggerOptions { get; set; } = new LoggerOptions();
-
+        public static ConfigOptions Options { get; set; } = new ConfigOptions();
 
         public static IConfigurationRoot Configuration { get; set; }
 
