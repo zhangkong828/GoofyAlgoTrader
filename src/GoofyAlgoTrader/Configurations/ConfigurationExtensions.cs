@@ -1,5 +1,7 @@
-﻿using GoofyAlgoTrader.Logging;
+﻿using GoofyAlgoTrader.Caching;
+using GoofyAlgoTrader.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +24,13 @@ namespace GoofyAlgoTrader.Configurations
             Config.Options = Config.Get<ConfigOptions>("GoofyAlgoTrader") ?? new ConfigOptions();
             Config.LoggerOptions = Config.Get<LoggerOptions>("GoofyAlgoTrader:Logger") ?? new LoggerOptions();
             return builder;
+        }
+
+        public static IServiceCollection UseGoofyAlgoTrader(this IServiceCollection services)
+        {
+            services.UseDefaultCaching();
+
+            return services;
         }
     }
 }

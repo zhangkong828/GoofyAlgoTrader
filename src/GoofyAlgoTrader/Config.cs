@@ -1,4 +1,5 @@
-﻿using GoofyAlgoTrader.Logging;
+﻿using GoofyAlgoTrader.Configurations;
+using GoofyAlgoTrader.Logging;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
