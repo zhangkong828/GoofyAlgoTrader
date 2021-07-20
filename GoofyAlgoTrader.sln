@@ -5,7 +5,13 @@ VisualStudioVersion = 16.0.30717.126
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader", "src\GoofyAlgoTrader\GoofyAlgoTrader.csproj", "{B9571E95-5D3C-4E60-A894-B2C7AC9BEF9C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.WebApi", "src\GoofyAlgoTrader.WebApi\GoofyAlgoTrader.WebApi.csproj", "{E1F6BA2E-8D89-4072-9947-14042361F701}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader.WebApi", "src\GoofyAlgoTrader.WebApi\GoofyAlgoTrader.WebApi.csproj", "{E1F6BA2E-8D89-4072-9947-14042361F701}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Futures", "Futures", "{306CDA38-E02B-4B13-B093-C1953141B0C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.Futures.Core", "src\Futures\GoofyAlgoTrader.Futures.Core\GoofyAlgoTrader.Futures.Core.csproj", "{D16C4872-B721-4B1D-9025-35962C2EA441}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.Futures.Strategy", "src\Futures\GoofyAlgoTrader.Futures.Strategy\GoofyAlgoTrader.Futures.Strategy.csproj", "{4B1C9838-06B8-48F5-A4CC-5D696124966D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,9 +27,21 @@ Global
 		{E1F6BA2E-8D89-4072-9947-14042361F701}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1F6BA2E-8D89-4072-9947-14042361F701}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1F6BA2E-8D89-4072-9947-14042361F701}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D16C4872-B721-4B1D-9025-35962C2EA441}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D16C4872-B721-4B1D-9025-35962C2EA441}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D16C4872-B721-4B1D-9025-35962C2EA441}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D16C4872-B721-4B1D-9025-35962C2EA441}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B1C9838-06B8-48F5-A4CC-5D696124966D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B1C9838-06B8-48F5-A4CC-5D696124966D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B1C9838-06B8-48F5-A4CC-5D696124966D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B1C9838-06B8-48F5-A4CC-5D696124966D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D16C4872-B721-4B1D-9025-35962C2EA441} = {306CDA38-E02B-4B13-B093-C1953141B0C6}
+		{4B1C9838-06B8-48F5-A4CC-5D696124966D} = {306CDA38-E02B-4B13-B093-C1953141B0C6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7AAF78B6-92F5-4E0F-BE03-9BE58168AA8B}
