@@ -1,4 +1,5 @@
 ﻿using GoofyAlgoTrader.Caching;
+using GoofyAlgoTrader.Caching.Redis;
 using GoofyAlgoTrader.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +29,11 @@ namespace GoofyAlgoTrader.Configurations
 
         public static IServiceCollection UseGoofyAlgoTrader(this IServiceCollection services)
         {
-            services.UseDefaultCaching();
+            var redisCache = Config.Get<RedisCacheConfig>("RedisCache");
+            if (redisCache == null)
+                services.UseDefaultCaching();
+            else
+                services.UseRedisCache();
 
             return services;
         }
