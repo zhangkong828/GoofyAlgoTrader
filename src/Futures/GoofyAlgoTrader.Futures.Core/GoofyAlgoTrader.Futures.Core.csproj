@@ -8,4 +8,8 @@
     <Folder Include="HostedServices\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\GoofyAlgoTrader\GoofyAlgoTrader.csproj" />
+  </ItemGroup>
+
 </Project>

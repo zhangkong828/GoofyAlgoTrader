@@ -4,7 +4,7 @@ using System.Text;
 
 namespace GoofyAlgoTrader.Futures
 {
-    class Strategy
+    public class Strategy
     {
     }
 }
