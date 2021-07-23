@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using GoofyAlgoTrader.Futures.Tracker.CTP;
+using GoofyAlgoTrader.Logging;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,20 +11,25 @@ namespace GoofyAlgoTrader.Futures.Tracker
 {
     public class TrackerService : IHostedService
     {
-        private readonly Account _account;
+        private readonly ILogger _log = Log.GetLogger();
+        private readonly CtpService _ctpService;
+
         public TrackerService()
         {
-            _account = Config.Get<Account>("Account");
+            var account = Config.Get<Account>("Account");
+            _ctpService = new CtpService(account);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            _ctpService.Run();
+            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            _ctpService.Stop();
+            return Task.CompletedTask;
         }
     }
 }

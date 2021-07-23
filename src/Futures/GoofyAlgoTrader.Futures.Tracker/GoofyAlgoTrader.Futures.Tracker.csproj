@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Lib\nctp.dll">
+    <None Update="nctp.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

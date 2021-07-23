@@ -8,7 +8,7 @@ namespace GoofyAlgoTrader.Futures.Tracker.CTP
 {
     public class CtpService
     {
-        private readonly ILogger _log = Log.GetLogger("Exception");
+        private readonly ILogger _log = Log.GetLogger("CtpService");
 
         private readonly Account _account;
         private TradeExt _t;
@@ -35,6 +35,12 @@ namespace GoofyAlgoTrader.Futures.Tracker.CTP
             _t.ReqConnect();
         }
 
+        public void Stop()
+        {
+            _t.ReqUserLogout();
+            _q.ReqUserLogout();
+        }
+
         private void _t_OnFrontConnected(object sender, EventArgs e)
         {
             _log.Debug("t:connected");
@@ -56,6 +62,15 @@ namespace GoofyAlgoTrader.Futures.Tracker.CTP
 
         private void StartQuote()
         {
+            foreach (var v in _t.DicPositionField.Values)
+            {
+                _log.Info($"posi:{v.InstrumentID}\t{v.Direction}\t{v.Price}\t{v.Position}");
+            }
+            foreach (var v in _t.DicExcStatus)
+            {
+                _log.Info($"{v.Key}:{v.Value}");
+            }
+
             _q = new QuoteExt()
             {
                 FrontAddr = _account.MarketFrontAddr,
