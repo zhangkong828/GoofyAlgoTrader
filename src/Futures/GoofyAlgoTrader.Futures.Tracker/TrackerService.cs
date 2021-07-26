@@ -1,5 +1,4 @@
-﻿using GoofyAlgoTrader.Futures.Tracker.CTP;
-using GoofyAlgoTrader.Logging;
+﻿using GoofyAlgoTrader.Logging;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;

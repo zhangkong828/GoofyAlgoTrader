@@ -9,13 +9,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader.WebApi", "s
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Futures", "Futures", "{306CDA38-E02B-4B13-B093-C1953141B0C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.Futures.Core", "src\Futures\GoofyAlgoTrader.Futures.Core\GoofyAlgoTrader.Futures.Core.csproj", "{D16C4872-B721-4B1D-9025-35962C2EA441}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader.Futures.Core", "src\Futures\GoofyAlgoTrader.Futures.Core\GoofyAlgoTrader.Futures.Core.csproj", "{D16C4872-B721-4B1D-9025-35962C2EA441}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.Futures.Strategy", "src\Futures\GoofyAlgoTrader.Futures.Strategy\GoofyAlgoTrader.Futures.Strategy.csproj", "{4B1C9838-06B8-48F5-A4CC-5D696124966D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader.Futures.Strategy", "src\Futures\GoofyAlgoTrader.Futures.Strategy\GoofyAlgoTrader.Futures.Strategy.csproj", "{4B1C9838-06B8-48F5-A4CC-5D696124966D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.Futures.Web", "src\Futures\GoofyAlgoTrader.Futures.Web\GoofyAlgoTrader.Futures.Web.csproj", "{8219531B-07C5-4934-9E9E-CBB0E8F830C6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader.Futures.Web", "src\Futures\GoofyAlgoTrader.Futures.Web\GoofyAlgoTrader.Futures.Web.csproj", "{8219531B-07C5-4934-9E9E-CBB0E8F830C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoofyAlgoTrader.Futures.Tracker", "src\Futures\GoofyAlgoTrader.Futures.Tracker\GoofyAlgoTrader.Futures.Tracker.csproj", "{1DBE296F-B828-40A4-966E-9217C546AC2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoofyAlgoTrader.Futures.Tracker", "src\Futures\GoofyAlgoTrader.Futures.Tracker\GoofyAlgoTrader.Futures.Tracker.csproj", "{1DBE296F-B828-40A4-966E-9217C546AC2C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nctp", "src\nctp\nctp.csproj", "{6B5261B1-C6BE-4926-8FD9-02A59883B580}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{1DBE296F-B828-40A4-966E-9217C546AC2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1DBE296F-B828-40A4-966E-9217C546AC2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1DBE296F-B828-40A4-966E-9217C546AC2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B5261B1-C6BE-4926-8FD9-02A59883B580}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B5261B1-C6BE-4926-8FD9-02A59883B580}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B5261B1-C6BE-4926-8FD9-02A59883B580}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B5261B1-C6BE-4926-8FD9-02A59883B580}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,9 @@
 ﻿{
   "GoofyAlgoTrader": {
-
+    "Logger": {
+      "EnableConsoleLogger": true,
+      "LogLevel": "Debug"
+    }
   },
   "Account": {
     "ServerName": "SimNow模拟",
@@ -10,10 +13,10 @@
     "AppID": "simnow_client_test",
     "AuthCode": "0000000000000000",
     //交易日，16：00～次日09：00；非交易日，16：00～次日15：00
-    //"TradeFrontAddr": "tcp://180.168.146.187:10130",
-    //"MarketFrontAddr": "tcp://180.168.146.187:10131"
+    "TradeFrontAddr": "tcp://180.168.146.187:10130",
+    "MarketFrontAddr": "tcp://180.168.146.187:10131"
     //正常交易时间
-    "TradeFrontAddr": "180.168.146.187:10201",
-    "MarketFrontAddr": "180.168.146.187:10211"
+    //"TradeFrontAddr": "tcp://218.202.237.33:10203",
+    //"MarketFrontAddr": "tcp://218.202.237.33:10213"
   }
 }
