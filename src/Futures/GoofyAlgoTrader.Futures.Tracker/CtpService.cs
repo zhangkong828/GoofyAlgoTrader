@@ -132,6 +132,8 @@ namespace GoofyAlgoTrader.Futures.Tracker
         }
         private void _q_OnRtnTick(object sender, TickEventArgs e)
         {
+            var action = _t.TradingDay;
+
             OnTick?.Invoke(e.Tick);
         }
     }
