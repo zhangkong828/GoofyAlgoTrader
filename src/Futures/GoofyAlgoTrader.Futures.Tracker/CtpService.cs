@@ -1,4 +1,5 @@
-﻿using GoofyAlgoTrader.Logging;
+﻿using GoofyAlgoTrader.Futures.Core;
+using GoofyAlgoTrader.Logging;
 using nctp;
 using System;
 using System.Collections.Generic;
@@ -133,6 +134,19 @@ namespace GoofyAlgoTrader.Futures.Tracker
         private void _q_OnRtnTick(object sender, TickEventArgs e)
         {
             var action = _t.TradingDay;
+
+            if (DateTime.TryParse(e.Tick.UpdateTime, out DateTime updateTime))
+            {
+
+                //夜盘
+                if (updateTime.Hour<=3)
+                {
+
+                }
+            }
+         
+
+
 
             OnTick?.Invoke(e.Tick);
         }

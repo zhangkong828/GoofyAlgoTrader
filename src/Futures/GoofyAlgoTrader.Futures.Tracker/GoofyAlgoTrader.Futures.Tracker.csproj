@@ -33,6 +33,12 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="calendar.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy &quot;$(SolutionDir)src\v6.5.1\*.*&quot; &quot;$(TargetDir)&quot; /Y" />
   </Target>
