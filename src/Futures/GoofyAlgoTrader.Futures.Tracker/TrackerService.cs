@@ -53,7 +53,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
                     {
                         _log.Info($"waiting for trading start at {startTime}");
                         var waitingTime = startTime - currentNow;
-                        Task.Delay((int)waitingTime.TotalMilliseconds);
+                        Task.Delay((int)waitingTime.TotalMilliseconds, cancellationToken);
                     }
                     // 15:00前开启
                     currentNow = DateTime.Now;
@@ -74,7 +74,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
                         {
                             _log.Info($"waiting for night open at {startTime}");
                             var waitingTime = startTime - currentNow;
-                            Task.Delay((int)waitingTime.TotalMilliseconds);
+                            Task.Delay((int)waitingTime.TotalMilliseconds, cancellationToken);
                         }
 
                         _ctpService.Run();
