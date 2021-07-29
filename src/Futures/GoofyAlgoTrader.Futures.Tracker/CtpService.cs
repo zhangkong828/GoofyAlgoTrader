@@ -29,6 +29,10 @@ namespace GoofyAlgoTrader.Futures.Tracker
         private readonly Account _account;
         private TradeExt _t;
         private CTPQuote _q;
+
+        public DateTime TradingDay { get; set; }
+        public DateTime ActionDay { get; set; }
+        public DateTime ActionDayNext { get; set; }
         public CtpService(Account account)
         {
             _account = account;
@@ -72,6 +76,21 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (e.ErrorID == 0)
             {
                 _log.Debug("trade:user login success");
+
+                if (DateTime.TryParse(_t.TradingDay, out DateTime TradingDay))
+                {
+                    if (TradingDay.DayOfWeek == DayOfWeek.Monday)//周一
+                    {
+                        ActionDay = TradingDay.AddDays(-3);//上周五
+                        ActionDayNext = TradingDay.AddDays(2);//上周六
+                    }
+                    else
+                    {
+                        ActionDay = TradingDay.AddDays(-1);//上一天
+                        ActionDayNext = TradingDay;//本日
+                    }
+                }
+
                 StartQuote();
             }
             else
@@ -133,19 +152,18 @@ namespace GoofyAlgoTrader.Futures.Tracker
         }
         private void _q_OnRtnTick(object sender, TickEventArgs e)
         {
-            var action = _t.TradingDay;
+            var action = TradingDay;
 
             if (DateTime.TryParse(e.Tick.UpdateTime, out DateTime updateTime))
             {
-
                 //夜盘
-                if (updateTime.Hour<=3)
-                {
-
-                }
+                if (updateTime.Hour <= 3)
+                    action = ActionDayNext;
+                else if (updateTime.Hour >= 20)
+                    action = ActionDay;
             }
-         
 
+            var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
 
 
             OnTick?.Invoke(e.Tick);

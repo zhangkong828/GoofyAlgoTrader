@@ -37,6 +37,12 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            if (Config.Options.IsDebug)
+            {
+                _ctpService.Run();
+                return Task.CompletedTask;
+            }
+
             return Task.Factory.StartNew(() =>
             {
                 var currentDate = DateTime.Today;

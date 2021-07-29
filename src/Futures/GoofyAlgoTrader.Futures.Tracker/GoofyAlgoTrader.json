@@ -1,5 +1,6 @@
 ﻿{
   "GoofyAlgoTrader": {
+    "IsDebug": true,
     "Logger": {
       "EnableConsoleLogger": true,
       "LogLevel": "Debug"

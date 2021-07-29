@@ -8,6 +8,6 @@ namespace GoofyAlgoTrader.Configurations
 {
     public class ConfigOptions
     {
-        public string JobDirectory { get; set; } = "Packages";
+        public bool IsDebug { get; set; } = false;
     }
 }
