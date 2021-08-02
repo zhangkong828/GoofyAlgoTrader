@@ -165,6 +165,23 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
             var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
 
+            Tick tick = new Tick
+            {
+                AskPrice = e.Tick.AskPrice,
+                AveragePrice = e.Tick.AveragePrice,
+                BidPrice = e.Tick.BidPrice,
+                LastPrice = e.Tick.LastPrice,
+                LowerLimitPrice = e.Tick.LowerLimitPrice,
+                OpenInterest = e.Tick.OpenInterest,
+                UpperLimitPrice = e.Tick.UpperLimitPrice,
+                AskVolume = e.Tick.AskVolume,
+                BidVolume = e.Tick.BidVolume,
+                InstrumentID = e.Tick.InstrumentID,
+                TradingDay = int.Parse(action),
+                UpdateMillisec = e.Tick.UpdateMillisec,
+                UpdateTime = e.Tick.UpdateTime,
+                Volume = e.Tick.Volume,
+            };
 
             OnTick?.Invoke(e.Tick);
         }
