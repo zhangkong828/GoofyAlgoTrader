@@ -6,6 +6,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GoofyAlgoTrader.Futures.Tracker
 {
@@ -159,89 +161,94 @@ namespace GoofyAlgoTrader.Futures.Tracker
         }
         private void _q_OnRtnTick(object sender, TickEventArgs e)
         {
-            var action = _tradingDay;
-
-            if (DateTime.TryParse(e.Tick.UpdateTime, out DateTime updateTime))
+            Task.Factory.StartNew(() =>
             {
-                //夜盘
-                if (updateTime.Hour <= 3)
-                    action = _actionDayNext;
-                else if (updateTime.Hour >= 20)
-                    action = _actionDay;
-            }
+                var action = _tradingDay;
 
-            var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
-            var minDateTimeStr = minDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-
-
-            if (!_instLastMin.TryGetValue(e.Tick.InstrumentID, out Bar bar))
-            {
-                bar = new Bar();
-                bar.Id = minDateTimeStr;
-                bar.Open = e.Tick.LastPrice;
-                bar.High = e.Tick.LastPrice;
-                bar.Close = e.Tick.LastPrice;
-                bar.Low = e.Tick.LastPrice;
-                bar.Volume = 0;
-                bar.PreVol = e.Tick.Volume;
-                bar.OpenInterestI = e.Tick.OpenInterest;
-                bar.TradingDay = int.Parse(_tradingDay.ToString("yyyyMMdd"));
-                bar.Ticks = 1;
-            }
-            else
-            {
-                if (!DateTime.TryParse(bar.Id, out DateTime barId))
-                    return;
-
-                var minDiff = DateTime.Compare(minDateTime, barId);
-
-                if (minDiff < 0)//小于0 旧数据 不处理
+                if (DateTime.TryParse(e.Tick.UpdateTime, out DateTime updateTime))
                 {
-                    return;
+                    //夜盘
+                    if (updateTime.Hour <= 3)
+                        action = _actionDayNext;
+                    else if (updateTime.Hour >= 20)
+                        action = _actionDay;
                 }
 
-                if (minDiff > 0)
+                var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
+                var minDateTimeStr = minDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+
+
+                if (!_instLastMin.TryGetValue(e.Tick.InstrumentID, out Bar bar))
                 {
+                    bar = new Bar();
                     bar.Id = minDateTimeStr;
                     bar.Open = e.Tick.LastPrice;
                     bar.High = e.Tick.LastPrice;
                     bar.Close = e.Tick.LastPrice;
                     bar.Low = e.Tick.LastPrice;
-                    bar.PreVol = bar.PreVol + bar.Volume;
-                    bar.Volume = e.Tick.Volume - bar.PreVol;
+                    bar.Volume = 0;
+                    bar.PreVol = e.Tick.Volume;
                     bar.OpenInterestI = e.Tick.OpenInterest;
+                    bar.TradingDay = int.Parse(_tradingDay.ToString("yyyyMMdd"));
                     bar.Ticks = 1;
                 }
                 else
                 {
-                    //数据更新
-                    if (e.Tick.LastPrice - bar.High > E)
-                        bar.High = e.Tick.LastPrice;
-                    if (e.Tick.LastPrice - bar.Low < E)
-                        bar.Low = e.Tick.LastPrice;
-                    bar.Close = e.Tick.LastPrice;
-                    bar.Volume = e.Tick.Volume - bar.PreVol;
-                    bar.OpenInterestI = e.Tick.OpenInterest;
+                    if (!DateTime.TryParse(bar.Id, out DateTime barId))
+                        return;
 
-                    if (bar.Volume > 0)// 过滤成交量==0的数据
+                    var minDiff = DateTime.Compare(minDateTime, barId);
+
+                    if (minDiff < 0)//小于0 旧数据 不处理
                     {
-                        bar.Ticks++;
+                        return;
+                    }
 
-                        var cacheKey = CacheKey.FuturesInstrumentLastMin(e.Tick.InstrumentID);
-                        if (bar.Ticks == 3)// 控制分钟最小tick数量  避免盘歇的数据
+                    if (minDiff > 0)
+                    {
+                        bar.Id = minDateTimeStr;
+                        bar.Open = e.Tick.LastPrice;
+                        bar.High = e.Tick.LastPrice;
+                        bar.Close = e.Tick.LastPrice;
+                        bar.Low = e.Tick.LastPrice;
+                        bar.PreVol = bar.PreVol + bar.Volume;
+                        bar.Volume = e.Tick.Volume - bar.PreVol;
+                        bar.OpenInterestI = e.Tick.OpenInterest;
+                        bar.Ticks = 1;
+                    }
+                    else
+                    {
+                        //数据更新
+                        if (e.Tick.LastPrice - bar.High > E)
+                            bar.High = e.Tick.LastPrice;
+                        if (e.Tick.LastPrice - bar.Low < E)
+                            bar.Low = e.Tick.LastPrice;
+                        bar.Close = e.Tick.LastPrice;
+                        bar.Volume = e.Tick.Volume - bar.PreVol;
+                        bar.OpenInterestI = e.Tick.OpenInterest;
+
+                        if (bar.Volume > 0)// 过滤成交量==0的数据
                         {
-                            _redisClient.RPush(cacheKey, bar);
-                        }
-                        else if (bar.Ticks > 3)
-                        {
-                            _redisClient.LSet(cacheKey, -1, bar);
+                            bar.Ticks++;
+
+                            var cacheKey = CacheKey.FuturesInstrumentLastMin(e.Tick.InstrumentID);
+                            if (bar.Ticks == 3)// 控制分钟最小tick数量  避免盘歇的数据
+                            {
+                                _redisClient.RPush(cacheKey, bar);
+                            }
+                            else if (bar.Ticks > 3)
+                            {
+                                _redisClient.LSet(cacheKey, -1, bar);
+                            }
                         }
                     }
                 }
-            }
 
-            _instLastMin.TryAdd(e.Tick.InstrumentID, bar);
-            _execTicks++;
+                _instLastMin.TryAdd(e.Tick.InstrumentID, bar);
+           
+                Interlocked.Increment(ref _execTicks);
+            });
+
         }
     }
 }
