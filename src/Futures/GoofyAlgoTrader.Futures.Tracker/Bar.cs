@@ -10,7 +10,6 @@ namespace GoofyAlgoTrader.Futures.Tracker
         /// 时间
         /// </summary>
         public string Id { get; set; }
-
         /// <summary>
         /// 交易日
         /// </summary>

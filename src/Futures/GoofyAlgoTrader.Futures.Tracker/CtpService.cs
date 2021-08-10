@@ -1,7 +1,9 @@
-﻿using GoofyAlgoTrader.Futures.Core;
+﻿using CSRedis;
+using GoofyAlgoTrader.Futures.Core;
 using GoofyAlgoTrader.Logging;
 using nctp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 
@@ -27,18 +29,24 @@ namespace GoofyAlgoTrader.Futures.Tracker
         private readonly ILogger _log = Log.GetLogger("CtpService");
 
         private readonly Account _account;
+        private readonly CSRedisClient _redisClient;
         private TradeExt _t;
-        private CTPQuote _q;
+        private QuoteExt _q;
 
-        public DateTime TradingDay { get; set; }
-        public DateTime ActionDay { get; set; }
-        public DateTime ActionDayNext { get; set; }
-        public CtpService(Account account)
+        public DateTime _tradingDay { get; set; }
+        public DateTime _actionDay { get; set; }
+        public DateTime _actionDayNext { get; set; }
+
+        private ConcurrentDictionary<string, Bar> _instLastMin = new ConcurrentDictionary<string, Bar>();
+
+        private const double E = 0.000001;
+        public long _ticks = 0;
+        public long _execTicks = 0;
+        public CtpService(CSRedisClient redisClient, Account account)
         {
+            _redisClient = redisClient;
             _account = account;
         }
-
-        public Action<MarketData> OnTick { get; set; }
 
         public void Run()
         {
@@ -76,18 +84,18 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (e.ErrorID == 0)
             {
                 _log.Debug("trade:user login success");
-
-                if (DateTime.TryParse(_t.TradingDay, out DateTime TradingDay))
+                if (DateTime.TryParse(_t.TradingDay, out DateTime tradingDay))
                 {
-                    if (TradingDay.DayOfWeek == DayOfWeek.Monday)//周一
+                    _tradingDay = tradingDay;
+                    if (tradingDay.DayOfWeek == DayOfWeek.Monday)//周一
                     {
-                        ActionDay = TradingDay.AddDays(-3);//上周五
-                        ActionDayNext = TradingDay.AddDays(2);//上周六
+                        _actionDay = tradingDay.AddDays(-3);//上周五
+                        _actionDayNext = tradingDay.AddDays(2);//上周六
                     }
                     else
                     {
-                        ActionDay = TradingDay.AddDays(-1);//上一天
-                        ActionDayNext = TradingDay;//本日
+                        _actionDay = tradingDay.AddDays(-1);//上一天
+                        _actionDayNext = tradingDay;//本日
                     }
                 }
 
@@ -136,7 +144,6 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (e.Value == 0)
             {
                 _log.Debug($"quote:user login success {_q.Investor}");
-
                 foreach (var item in _t.DicInstrumentField)
                 {
                     if (item.Value.ProductID.IsNullOrEmpty()) continue;
@@ -152,38 +159,89 @@ namespace GoofyAlgoTrader.Futures.Tracker
         }
         private void _q_OnRtnTick(object sender, TickEventArgs e)
         {
-            var action = TradingDay;
+            var action = _tradingDay;
 
             if (DateTime.TryParse(e.Tick.UpdateTime, out DateTime updateTime))
             {
                 //夜盘
                 if (updateTime.Hour <= 3)
-                    action = ActionDayNext;
+                    action = _actionDayNext;
                 else if (updateTime.Hour >= 20)
-                    action = ActionDay;
+                    action = _actionDay;
             }
 
             var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
+            var minDateTimeStr = minDateTime.ToString("yyyy-MM-dd HH:mm:ss");
 
-            Tick tick = new Tick
+
+            if (!_instLastMin.TryGetValue(e.Tick.InstrumentID, out Bar bar))
             {
-                AskPrice = e.Tick.AskPrice,
-                AveragePrice = e.Tick.AveragePrice,
-                BidPrice = e.Tick.BidPrice,
-                LastPrice = e.Tick.LastPrice,
-                LowerLimitPrice = e.Tick.LowerLimitPrice,
-                OpenInterest = e.Tick.OpenInterest,
-                UpperLimitPrice = e.Tick.UpperLimitPrice,
-                AskVolume = e.Tick.AskVolume,
-                BidVolume = e.Tick.BidVolume,
-                InstrumentID = e.Tick.InstrumentID,
-                TradingDay = int.Parse(action),
-                UpdateMillisec = e.Tick.UpdateMillisec,
-                UpdateTime = e.Tick.UpdateTime,
-                Volume = e.Tick.Volume,
-            };
+                bar = new Bar();
+                bar.Id = minDateTimeStr;
+                bar.Open = e.Tick.LastPrice;
+                bar.High = e.Tick.LastPrice;
+                bar.Close = e.Tick.LastPrice;
+                bar.Low = e.Tick.LastPrice;
+                bar.Volume = 0;
+                bar.PreVol = e.Tick.Volume;
+                bar.OpenInterestI = e.Tick.OpenInterest;
+                bar.TradingDay = int.Parse(_tradingDay.ToString("yyyyMMdd"));
+                bar.Ticks = 1;
+            }
+            else
+            {
+                if (!DateTime.TryParse(bar.Id, out DateTime barId))
+                    return;
 
-            OnTick?.Invoke(e.Tick);
+                var minDiff = DateTime.Compare(minDateTime, barId);
+
+                if (minDiff < 0)//小于0 旧数据 不处理
+                {
+                    return;
+                }
+
+                if (minDiff > 0)
+                {
+                    bar.Id = minDateTimeStr;
+                    bar.Open = e.Tick.LastPrice;
+                    bar.High = e.Tick.LastPrice;
+                    bar.Close = e.Tick.LastPrice;
+                    bar.Low = e.Tick.LastPrice;
+                    bar.PreVol = bar.PreVol + bar.Volume;
+                    bar.Volume = e.Tick.Volume - bar.PreVol;
+                    bar.OpenInterestI = e.Tick.OpenInterest;
+                    bar.Ticks = 1;
+                }
+                else
+                {
+                    //数据更新
+                    if (e.Tick.LastPrice - bar.High > E)
+                        bar.High = e.Tick.LastPrice;
+                    if (e.Tick.LastPrice - bar.Low < E)
+                        bar.Low = e.Tick.LastPrice;
+                    bar.Close = e.Tick.LastPrice;
+                    bar.Volume = e.Tick.Volume - bar.PreVol;
+                    bar.OpenInterestI = e.Tick.OpenInterest;
+
+                    if (bar.Volume > 0)// 过滤成交量==0的数据
+                    {
+                        bar.Ticks++;
+
+                        var cacheKey = CacheKey.FuturesInstrumentLastMin(e.Tick.InstrumentID);
+                        if (bar.Ticks == 3)// 控制分钟最小tick数量  避免盘歇的数据
+                        {
+                            _redisClient.RPush(cacheKey, bar);
+                        }
+                        else if (bar.Ticks > 3)
+                        {
+                            _redisClient.LSet(cacheKey, -1, bar);
+                        }
+                    }
+                }
+            }
+
+            _instLastMin.TryAdd(e.Tick.InstrumentID, bar);
+            _execTicks++;
         }
     }
 }

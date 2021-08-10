@@ -29,7 +29,7 @@ namespace GoofyAlgoTrader.Caching
             services.AddSingleton(config);
 
             var RedisClient = new CSRedisClient(config.Connection);
-            services.AddSingleton(_ => RedisClient);
+            services.AddSingleton(RedisClient);
 
             services.AddSingleton<ICaching, RedisCache>();
             services.AddSingleton<ICachingProvider, RedisCacheProvider>();
