@@ -32,6 +32,8 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         private readonly Account _account;
         private readonly CSRedisClient _redisClient;
+        private readonly List<string> _products;
+
         private TradeExt _t;
         private QuoteExt _q;
 
@@ -40,14 +42,16 @@ namespace GoofyAlgoTrader.Futures.Tracker
         public DateTime _actionDayNext { get; set; }
 
         private ConcurrentDictionary<string, Bar> _instLastMin = new ConcurrentDictionary<string, Bar>();
+        private ConcurrentDictionary<string, ExchangeStatusType> _mapInstrumentStatus = new ConcurrentDictionary<string, ExchangeStatusType>();
 
         private const double E = 0.000001;
         public long _ticks = 0;
         public long _execTicks = 0;
-        public CtpService(CSRedisClient redisClient, Account account)
+        public CtpService(CSRedisClient redisClient, Account account, List<string> products)
         {
             _redisClient = redisClient;
             _account = account;
+            _products = products;
         }
 
         public void Run()
@@ -146,12 +150,63 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (e.Value == 0)
             {
                 _log.Debug($"quote:user login success {_q.Investor}");
+                int count = 0;
                 foreach (var item in _t.DicInstrumentField)
                 {
                     if (item.Value.ProductID.IsNullOrEmpty()) continue;
 
+                    try
+                    {
+                        //最新k线数据
+                        var instrumentId = item.Key;
+                        var bars = _redisClient.LRange<Bar>(CacheKey.FuturesInstrumentLastMin(instrumentId), -1, -1);
+                        if (bars != null && bars.Length > 0)
+                        {
+                            _instLastMin.TryAdd(instrumentId, bars[0]);
+                        }
+
+                        //更新合约状态
+                        if (_t.DicExcStatus.TryGetValue(item.Value.ProductID, out ExchangeStatusType status))
+                        {
+                            _mapInstrumentStatus.TryAdd(instrumentId, status);
+                        }
+
+                        //订阅列表
+                        if (_products != null && _products.Count > 0)
+                        {
+                            int index = -1;
+                            for (int i = 0; i < _products.Count; i++)
+                            {
+                                if (_products[i].EqualIgnoreCase(instrumentId))
+                                {
+                                    index = i;
+                                    break;
+                                }
+                            }
+                            //不在列表
+                            if (index == -1)
+                            {
+                                continue;
+                            }
+                        }
+
+                        _q.ReqSubscribeMarketData(instrumentId);
+                        //防止数量太多
+                        if (count % 5000 == 0)
+                        {
+                            var sleep = Utils.RandomNumber() * 200;
+                            Thread.Sleep(sleep);
+                        }
+                        count++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"quote.OnRspUserLogin: {item.Key}", ex);
+                    }
+
                 }
-                _q.ReqSubscribeMarketData("rb2110");
+
+                _log.Info($"quote:subscript instrument count: {count}");
             }
             else
             {
@@ -161,6 +216,8 @@ namespace GoofyAlgoTrader.Futures.Tracker
         }
         private void _q_OnRtnTick(object sender, TickEventArgs e)
         {
+            Interlocked.Increment(ref _ticks);
+
             Task.Factory.StartNew(() =>
             {
                 var action = _tradingDay;
@@ -177,10 +234,9 @@ namespace GoofyAlgoTrader.Futures.Tracker
                 var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
                 var minDateTimeStr = minDateTime.ToString("yyyy-MM-dd HH:mm:ss");
 
-
-                if (!_instLastMin.TryGetValue(e.Tick.InstrumentID, out Bar bar))
+                _instLastMin.AddOrUpdate(e.Tick.InstrumentID, key =>
                 {
-                    bar = new Bar();
+                    var bar = new Bar();
                     bar.Id = minDateTimeStr;
                     bar.Open = e.Tick.LastPrice;
                     bar.High = e.Tick.LastPrice;
@@ -191,17 +247,17 @@ namespace GoofyAlgoTrader.Futures.Tracker
                     bar.OpenInterestI = e.Tick.OpenInterest;
                     bar.TradingDay = int.Parse(_tradingDay.ToString("yyyyMMdd"));
                     bar.Ticks = 1;
-                }
-                else
+                    return bar;
+                }, (key, bar) =>
                 {
                     if (!DateTime.TryParse(bar.Id, out DateTime barId))
-                        return;
+                        return bar;
 
                     var minDiff = DateTime.Compare(minDateTime, barId);
 
                     if (minDiff < 0)//小于0 旧数据 不处理
                     {
-                        return;
+                        return bar;
                     }
 
                     if (minDiff > 0)
@@ -242,10 +298,9 @@ namespace GoofyAlgoTrader.Futures.Tracker
                             }
                         }
                     }
-                }
+                    return bar;
+                });
 
-                _instLastMin.TryAdd(e.Tick.InstrumentID, bar);
-           
                 Interlocked.Increment(ref _execTicks);
             });
 

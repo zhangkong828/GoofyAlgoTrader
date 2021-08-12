@@ -8,6 +8,18 @@ namespace GoofyAlgoTrader
 {
     public class Utils
     {
+        static Random _random = new Random((int)DateTime.Now.Ticks);
+
+        public static int RandomNumber()
+        {
+            return _random.Next(1, 9);
+        }
+
+        public static double RandomtDoubleNumber()
+        {
+            return _random.NextDouble();
+        }
+
         /// <summary>
         /// 日期转换为时间戳
         /// </summary>

@@ -1,4 +1,5 @@
-﻿using GoofyAlgoTrader.Logging;
+﻿using CSRedis;
+using GoofyAlgoTrader.Logging;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
@@ -12,14 +13,16 @@ namespace GoofyAlgoTrader.Futures.Tracker
     public class TrackerService : IHostedService
     {
         private readonly ILogger _log = Log.GetLogger();
+        private readonly CSRedisClient _redisClient;
         private readonly CtpService _ctpService;
 
         private readonly List<string> _tradingDays;
 
-        public TrackerService()
+        public TrackerService(CSRedisClient redisClient)
         {
+            _redisClient = redisClient;
             var account = Config.Get<Account>("Account");
-            _ctpService = new CtpService(account);
+            _ctpService = new CtpService(_redisClient, account, null);
 
             //获取 交易日历
             _tradingDays = new List<string>();
