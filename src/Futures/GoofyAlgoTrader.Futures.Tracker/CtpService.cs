@@ -56,6 +56,36 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         public void Run()
         {
+            //Trade login
+
+            while (true)
+            {
+                var cntNotClose = 0;
+                var cntTrading = 0;
+                // 每分钟判断一次
+                Thread.Sleep(1000 * 60);
+                foreach (var item in _t.DicExcStatus)
+                {
+
+                }
+
+                // 全关闭 or 3点前全都为非交易状态
+                if (cntNotClose == 0)
+                {
+                    // 保存分钟数据
+
+                    break;
+                }
+
+                if (DateTime.Now.Hour <= 3 && cntTrading == 0)
+                {
+                    _log.Info("夜盘结束");
+                    break;
+                }
+
+                _log.Info($"有效/全部:{_execTicks}/{_ticks}");
+            }
+
             _t = new TradeExt()
             {
                 FrontAddr = _account.TradeFrontAddr,
@@ -78,6 +108,10 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (_q != null)
                 _q.ReqUserLogout();
         }
+
+
+
+
 
         private void _t_OnFrontConnected(object sender, EventArgs e)
         {
