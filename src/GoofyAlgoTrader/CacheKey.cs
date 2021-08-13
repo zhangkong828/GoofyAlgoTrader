@@ -13,6 +13,16 @@ namespace GoofyAlgoTrader
             return $"GoofyAlgoTrader:WebApiToken:{userId}";
         }
 
+        public static string Futures()
+        {
+            return $"GoofyAlgoTrader:Futures";
+        }
+
+        public static string FuturesHashConfig()
+        {
+            return $"GoofyAlgoTrader:Futures:Config";
+        }
+
         public static string FuturesInstrumentLastMin(string instrumentID)
         {
             return $"GoofyAlgoTrader:Futures:LastMin:{instrumentID}";

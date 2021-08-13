@@ -41,12 +41,14 @@ namespace GoofyAlgoTrader.Futures.Tracker
         public DateTime _actionDay { get; set; }
         public DateTime _actionDayNext { get; set; }
 
-        private ConcurrentDictionary<string, Bar> _instLastMin = new ConcurrentDictionary<string, Bar>();
-        private ConcurrentDictionary<string, ExchangeStatusType> _mapInstrumentStatus = new ConcurrentDictionary<string, ExchangeStatusType>();
+        private ConcurrentDictionary<string, Bar> _instLastMin;
+        private ConcurrentDictionary<string, ExchangeStatusType> _mapInstrumentStatus;
 
         private const double E = 0.000001;
-        public long _ticks = 0;
-        public long _execTicks = 0;
+        private long _ticks = 0;
+        private long _execTicks = 0;
+        private string _showTime;
+
         public CtpService(CSRedisClient redisClient, Account account, List<string> products)
         {
             _redisClient = redisClient;
@@ -56,36 +58,82 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         public void Run()
         {
-            //Trade login
+            int waitLoginSecond = 60;
+            Task.Factory.StartNew(() =>
+            {
+                StarTrade();
+            });
 
             while (true)
             {
-                var cntNotClose = 0;
-                var cntTrading = 0;
-                // 每分钟判断一次
-                Thread.Sleep(1000 * 60);
-                foreach (var item in _t.DicExcStatus)
+                //等待登录
+                if (_t != null && _t.IsLogin)
                 {
+                    var cntNotClose = 0;
+                    var cntTrading = 0;
+                    // 每分钟判断一次
+                    Thread.Sleep(1000 * 60);
+                    foreach (var item in _t.DicExcStatus)
+                    {
+                        var status = item.Value;
+                        if (status != ExchangeStatusType.Closed)
+                            cntNotClose++;
+                        if (status == ExchangeStatusType.Trading)
+                            cntTrading++;
+                    }
 
+                    // 全关闭 or 3点前全都为非交易状态
+                    if (cntNotClose == 0)
+                    {
+                        // 保存分钟数据
+                        _log.Info("保存分钟数据");
+                        break;
+                    }
+
+                    if (DateTime.Now.Hour <= 3 && cntTrading == 0)
+                    {
+                        _log.Info("夜盘结束");
+                        break;
+                    }
+
+                    _log.Info($"{_showTime}->有效/全部:{_execTicks}/{_ticks}");
                 }
-
-                // 全关闭 or 3点前全都为非交易状态
-                if (cntNotClose == 0)
+                else
                 {
-                    // 保存分钟数据
+                    if (waitLoginSecond <= 0)
+                    {
+                        _log.Error($"trade:wait login fail");
+                        break;
+                    }
 
-                    break;
+                    Thread.Sleep(1000);
+                    waitLoginSecond--;
+                    continue;
                 }
-
-                if (DateTime.Now.Hour <= 3 && cntTrading == 0)
-                {
-                    _log.Info("夜盘结束");
-                    break;
-                }
-
-                _log.Info($"有效/全部:{_execTicks}/{_ticks}");
             }
 
+            Stop();
+        }
+
+        public void Stop()
+        {
+            if (_t != null)
+                _t.ReqUserLogout();
+            if (_q != null)
+                _q.ReqUserLogout();
+        }
+
+        public void FlushRedis()
+        {
+            var keys = _redisClient.Keys($"{CacheKey.Futures()}*");
+            _redisClient.Del(keys);
+        }
+
+        private void StarTrade()
+        {
+            _mapInstrumentStatus = new ConcurrentDictionary<string, ExchangeStatusType>();
+
+            _log.Debug("trade:connect ...");
             _t = new TradeExt()
             {
                 FrontAddr = _account.TradeFrontAddr,
@@ -101,17 +149,6 @@ namespace GoofyAlgoTrader.Futures.Tracker
             _t.ReqConnect();
         }
 
-        public void Stop()
-        {
-            if (_t != null)
-                _t.ReqUserLogout();
-            if (_q != null)
-                _q.ReqUserLogout();
-        }
-
-
-
-
 
         private void _t_OnFrontConnected(object sender, EventArgs e)
         {
@@ -124,9 +161,19 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (e.ErrorID == 0)
             {
                 _log.Debug("trade:user login success");
-                if (DateTime.TryParse(_t.TradingDay, out DateTime tradingDay))
+                _instLastMin = new ConcurrentDictionary<string, Bar>();
+                if (DateTime.TryParseExact(_t.TradingDay, "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out DateTime tradingDay))
                 {
                     _tradingDay = tradingDay;
+                    var preDay = _redisClient.HGet(CacheKey.FuturesHashConfig(), "tradingday");
+                    if (!preDay.EqualIgnoreCase(_t.TradingDay))
+                    {
+                        FlushRedis();
+                        _ticks = 0;
+                        _execTicks = 0;
+                        _redisClient.HSet(CacheKey.FuturesHashConfig(), "tradingday", _t.TradingDay);
+                    }
+
                     if (tradingDay.DayOfWeek == DayOfWeek.Monday)//周一
                     {
                         _actionDay = tradingDay.AddDays(-3);//上周五
@@ -149,6 +196,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         private void StartQuote()
         {
+            _log.Debug("quote:connect ...");
             _q = new QuoteExt()
             {
                 FrontAddr = _account.MarketFrontAddr,
@@ -184,6 +232,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
             if (e.Value == 0)
             {
                 _log.Debug($"quote:user login success {_q.Investor}");
+                _mapInstrumentStatus = new ConcurrentDictionary<string, ExchangeStatusType>();
                 int count = 0;
                 foreach (var item in _t.DicInstrumentField)
                 {
@@ -254,6 +303,12 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
             Task.Factory.StartNew(() =>
             {
+                if (!_mapInstrumentStatus.TryGetValue(e.Tick.InstrumentID, out ExchangeStatusType statusType))
+                    return;
+
+                if (statusType != ExchangeStatusType.Trading)
+                    return;
+
                 var action = _tradingDay;
 
                 if (DateTime.TryParse(e.Tick.UpdateTime, out DateTime updateTime))
@@ -267,6 +322,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
                 var minDateTime = new DateTime(action.Year, action.Month, action.Day, updateTime.Hour, updateTime.Minute, 0);
                 var minDateTimeStr = minDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                _showTime = minDateTimeStr;
 
                 _instLastMin.AddOrUpdate(e.Tick.InstrumentID, key =>
                 {
