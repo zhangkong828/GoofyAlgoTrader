@@ -22,7 +22,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
         {
             _redisClient = redisClient;
             var account = Config.Get<Account>("Account");
-            var products = new List<string>() { "rb2110" };
+            var products = new List<string>() { "rb2110" };//
             _ctpService = new CtpService(_redisClient, account, products);
 
             //获取 交易日历
