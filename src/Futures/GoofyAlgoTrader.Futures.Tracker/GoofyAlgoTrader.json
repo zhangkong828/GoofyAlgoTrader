@@ -7,7 +7,7 @@
     }
   },
   "RedisCache": {
-    "Connection": "192.168.1.180:6379,password=123456"
+    "Connection": "192.168.1.180:6379,password=123456,defaultDatabase=15,prefix=GoofyAlgoTrader:"
   },
   "Account": {
     "ServerName": "SimNow模拟",

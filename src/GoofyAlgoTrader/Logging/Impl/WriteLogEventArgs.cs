@@ -81,7 +81,7 @@ namespace GoofyAlgoTrader.Logging.Impl
             if (name.EqualIgnoreCase("Threadpool worker")) name = "P";
             if (name.EqualIgnoreCase("IO Threadpool worker")) name = "IO";
 
-            return string.Format("{0:HH:mm:ss.fff} [{1}] {2} {3} {4} {5}", Time, Level.ToString(), ThreadID, IsThreadPoolThread ? 'P' : 'N', name, Message);
+            return string.Format("{0:HH:mm:ss.fff} {1} {2} {3} [{4}] {5}", Time, IsThreadPoolThread ? 'P' : 'N', ThreadID, name, Level.ToString(), Message);
         }
 
         private string GetExceptionMessage(Exception ex)

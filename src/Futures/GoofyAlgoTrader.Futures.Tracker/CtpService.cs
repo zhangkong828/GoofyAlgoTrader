@@ -5,6 +5,7 @@ using nctp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -49,6 +50,8 @@ namespace GoofyAlgoTrader.Futures.Tracker
         private long _execTicks = 0;
         private string _showTime;
 
+        private AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
+
         public CtpService(CSRedisClient redisClient, Account account, List<string> products)
         {
             _redisClient = redisClient;
@@ -58,12 +61,17 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         public void Run()
         {
-            int waitLoginSecond = 60;
             Task.Factory.StartNew(() =>
             {
                 StarTrade();
             });
 
+            Task.Factory.StartNew(() =>
+            {
+                StartQuote();
+            });
+
+            int waitLoginSecond = 60;
             while (true)
             {
                 //等待登录
@@ -96,7 +104,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
                         break;
                     }
 
-                    _log.Info($"{_showTime}->有效/全部:{_execTicks}/{_ticks}");
+                    _log.Info($"NotClose:{cntNotClose} Trading:{cntTrading} {_showTime}->有效/全部:{_execTicks}/{_ticks}");
                 }
                 else
                 {
@@ -117,15 +125,24 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         public void Stop()
         {
-            if (_t != null)
-                _t.ReqUserLogout();
-            if (_q != null)
-                _q.ReqUserLogout();
+            try
+            {
+                _log.Debug("stop");
+                if (_t != null)
+                    _t.ReqUserLogout();
+                if (_q != null)
+                    _q.ReqUserLogout();
+
+            }
+            catch { }
         }
 
         public void FlushRedis()
         {
-            var keys = _redisClient.Keys($"{CacheKey.Futures()}*");
+            var prefix = "GoofyAlgoTrader:";
+            var keys = _redisClient.Keys($"{prefix}Futures*");
+            //删除 需要去掉前缀
+            keys = keys.Select(x => x.TrimStart(prefix)).ToArray();
             _redisClient.Del(keys);
         }
 
@@ -185,17 +202,20 @@ namespace GoofyAlgoTrader.Futures.Tracker
                         _actionDayNext = tradingDay;//本日
                     }
                 }
-
-                StartQuote();
             }
             else
             {
                 _log.Error($"trade:user login fail {e.ErrorID}={e.ErrorMsg}");
             }
+
+            _autoResetEvent.Set();
         }
 
         private void StartQuote()
         {
+            _log.Debug("waiting trade login");
+            _autoResetEvent.WaitOne();
+
             _log.Debug("quote:connect ...");
             _q = new QuoteExt()
             {
