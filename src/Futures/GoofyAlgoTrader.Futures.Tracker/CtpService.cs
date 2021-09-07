@@ -1,5 +1,4 @@
 ﻿using CSRedis;
-using GoofyAlgoTrader.Futures.Core;
 using GoofyAlgoTrader.Logging;
 using nctp;
 using System;

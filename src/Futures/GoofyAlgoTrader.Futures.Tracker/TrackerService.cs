@@ -37,6 +37,8 @@ namespace GoofyAlgoTrader.Futures.Tracker
                     _tradingDays.Add(tradingDay);
                 }
             }
+
+            DbRepository.InitDB();
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
