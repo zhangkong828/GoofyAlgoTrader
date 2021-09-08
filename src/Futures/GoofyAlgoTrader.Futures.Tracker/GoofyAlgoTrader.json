@@ -10,7 +10,7 @@
     "Connection": "Server=192.168.1.203;User Id=root;Password=123456;Database=GoofyAlgoTrader"
   },
   "RedisCache": {
-    "Connection": "192.168.1.180:6379,password=123456,defaultDatabase=15,prefix=GoofyAlgoTrader:"
+    "Connection": "192.168.1.180:6379,password=123456,defaultDatabase=15"
   },
   "Account": {
     "ServerName": "SimNow模拟",

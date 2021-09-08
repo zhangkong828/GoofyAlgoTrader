@@ -8,20 +8,21 @@ namespace GoofyAlgoTrader
 {
     public class CacheKey
     {
+        public static readonly string PrefixKey = "GoofyAlgoTrader:";
+
         public static string WebApiToken(string userId)
         {
-            return $"WebApiToken:{userId}";
+            return $"{PrefixKey}WebApiToken:{userId}";
         }
-
 
         public static string FuturesHashConfig()
         {
-            return $"Futures:Config";
+            return $"{PrefixKey}Futures:Config";
         }
 
-        public static string FuturesInstrumentLastMin(string instrumentID)
+        public static string FuturesInstrumentLastMin()
         {
-            return $"Futures:LastMin:{instrumentID}";
+            return $"{PrefixKey}Futures:LastMin";
         }
     }
 }

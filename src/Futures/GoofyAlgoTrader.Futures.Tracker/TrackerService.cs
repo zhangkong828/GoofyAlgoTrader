@@ -38,7 +38,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
                 }
             }
 
-            DbRepository.InitDB();
+            DbService.InitDB();
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

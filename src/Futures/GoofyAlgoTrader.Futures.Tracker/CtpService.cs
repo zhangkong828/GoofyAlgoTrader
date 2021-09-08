@@ -89,21 +89,22 @@ namespace GoofyAlgoTrader.Futures.Tracker
                             cntTrading++;
                     }
 
-                    // 全关闭 or 3点前全都为非交易状态
+                    _log.Info($"NotClose:{cntNotClose} Trading:{cntTrading} {_showTime}->有效/全部:{_execTicks}/{_ticks}");
+
+                    // 全关闭
                     if (cntNotClose == 0)
                     {
                         // 保存分钟数据
-                        _log.Info("保存分钟数据");
+                        SaveDB();
                         break;
                     }
 
+                    //3点前全都为非交易状态
                     if (DateTime.Now.Hour <= 3 && cntTrading == 0)
                     {
                         _log.Info("夜盘结束");
                         break;
                     }
-
-                    _log.Info($"NotClose:{cntNotClose} Trading:{cntTrading} {_showTime}->有效/全部:{_execTicks}/{_ticks}");
                 }
                 else
                 {
@@ -126,7 +127,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
         {
             try
             {
-                _log.Debug("stop");
+                _log.Info("stop ctp service");
                 if (_t != null)
                     _t.ReqUserLogout();
                 if (_q != null)
@@ -138,10 +139,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         public void FlushRedis()
         {
-            var prefix = "GoofyAlgoTrader:";
-            var keys = _redisClient.Keys($"{prefix}Futures*");
-            //删除 需要去掉前缀
-            keys = keys.Select(x => x.TrimStart(prefix)).ToArray();
+            var keys = _redisClient.Keys($"{CacheKey.PrefixKey}Futures:*");
             _redisClient.Del(keys);
         }
 
@@ -162,9 +160,14 @@ namespace GoofyAlgoTrader.Futures.Tracker
             };
             _t.OnFrontConnected += _t_OnFrontConnected;
             _t.OnRspUserLogin += _t_OnRspUserLogin;
+            _t.OnRspUserLogout += _t_OnRspUserLogout;
             _t.ReqConnect();
         }
 
+        private void _t_OnRspUserLogout(object sender, IntEventArgs e)
+        {
+            _log.Info($"trade:logout {e.Value}");
+        }
 
         private void _t_OnFrontConnected(object sender, EventArgs e)
         {
@@ -176,7 +179,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
         {
             if (e.ErrorID == 0)
             {
-                _log.Debug("trade:user login success");
+                _log.Info("trade:user login success");
                 _instLastMin = new ConcurrentDictionary<string, Bar>();
                 if (DateTime.TryParseExact(_t.TradingDay, "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out DateTime tradingDay))
                 {
@@ -212,7 +215,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         private void StartQuote()
         {
-            _log.Debug("waiting trade login");
+            _log.Info("waiting trade login");
             _autoResetEvent.WaitOne();
 
             _log.Debug("quote:connect ...");
@@ -237,7 +240,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
 
         private void _q_OnRspUserLogout(object sender, IntEventArgs e)
         {
-            _log.Debug($"quote:logout {e.Value}");
+            _log.Info($"quote:logout {e.Value}");
         }
 
         private void _q_OnFrontConnected(object sender, EventArgs e)
@@ -250,7 +253,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
         {
             if (e.Value == 0)
             {
-                _log.Debug($"quote:user login success {_q.Investor}");
+                _log.Info($"quote:user login success {_q.Investor}");
                 _mapInstrumentStatus = new ConcurrentDictionary<string, ExchangeStatusType>();
                 int count = 0;
                 foreach (var item in _t.DicInstrumentField)
@@ -261,7 +264,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
                     {
                         //最新k线数据
                         var instrumentId = item.Key;
-                        var bars = _redisClient.LRange<Bar>(CacheKey.FuturesInstrumentLastMin(instrumentId), -1, -1);
+                        var bars = _redisClient.LRange<Bar>($"{CacheKey.FuturesInstrumentLastMin()}:{instrumentId}", -1, -1);
                         if (bars != null && bars.Length > 0)
                         {
                             _instLastMin.TryAdd(instrumentId, bars[0]);
@@ -353,8 +356,8 @@ namespace GoofyAlgoTrader.Futures.Tracker
                     bar.Low = e.Tick.LastPrice;
                     bar.Volume = 0;
                     bar.PreVol = e.Tick.Volume;
-                    bar.OpenInterestI = e.Tick.OpenInterest;
-                    bar.TradingDay = int.Parse(_tradingDay.ToString("yyyyMMdd"));
+                    bar.OpenInterest = e.Tick.OpenInterest;
+                    bar.TradingDay = _tradingDay.ToString("yyyyMMdd");
                     bar.Ticks = 1;
                     return bar;
                 }, (key, bar) =>
@@ -378,7 +381,7 @@ namespace GoofyAlgoTrader.Futures.Tracker
                         bar.Low = e.Tick.LastPrice;
                         bar.PreVol = bar.PreVol + bar.Volume;
                         bar.Volume = e.Tick.Volume - bar.PreVol;
-                        bar.OpenInterestI = e.Tick.OpenInterest;
+                        bar.OpenInterest = e.Tick.OpenInterest;
                         bar.Ticks = 1;
                     }
                     else
@@ -390,13 +393,13 @@ namespace GoofyAlgoTrader.Futures.Tracker
                             bar.Low = e.Tick.LastPrice;
                         bar.Close = e.Tick.LastPrice;
                         bar.Volume = e.Tick.Volume - bar.PreVol;
-                        bar.OpenInterestI = e.Tick.OpenInterest;
+                        bar.OpenInterest = e.Tick.OpenInterest;
 
                         if (bar.Volume > 0)// 过滤成交量==0的数据
                         {
                             bar.Ticks++;
 
-                            var cacheKey = CacheKey.FuturesInstrumentLastMin(e.Tick.InstrumentID);
+                            var cacheKey = $"{CacheKey.FuturesInstrumentLastMin()}:{e.Tick.InstrumentID}";
                             if (bar.Ticks == 3)// 控制分钟最小tick数量  避免盘歇的数据
                             {
                                 _redisClient.RPush(cacheKey, bar);
@@ -413,6 +416,59 @@ namespace GoofyAlgoTrader.Futures.Tracker
                 Interlocked.Increment(ref _execTicks);
             });
 
+        }
+
+        private void SaveDB()
+        {
+            int count = 0;
+            try
+            {
+                var keys = _redisClient.Keys($"{CacheKey.FuturesInstrumentLastMin()}*");
+                if (keys != null && keys.Length > 0)
+                {
+                    foreach (var key in keys)
+                    {
+                        var mins = _redisClient.LRange<Bar>(key, 0, -1);
+                        var preMin = DateTime.MinValue;
+                        foreach (var bar in mins)
+                        {
+                            if (DateTime.TryParse(bar.Id, out DateTime barMin) && DateTime.Compare(barMin, preMin) > 0)
+                            {
+                                var model = new MinBarModel()
+                                {
+                                    DateTime = bar.Id,
+                                    Instrument = key.TrimStart($"{CacheKey.FuturesInstrumentLastMin()}:"),
+                                    Open = bar.Open,
+                                    High = bar.High,
+                                    Low = bar.Low,
+                                    Close = bar.Close,
+                                    Volume = bar.Volume,
+                                    OpenInterest = bar.OpenInterest,
+                                    TradingDay = bar.TradingDay
+                                };
+                                if (DbService.InsertBar(model))
+                                    count++;
+                            }
+                            preMin = barMin;
+                        }
+                    }
+                    FlushRedis();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"入库异常,30分钟后清库", ex);
+                Task.Factory.StartNew(() =>
+                {
+                    Thread.Sleep(1000 * 60 * 30);
+                    FlushRedis();
+                });
+            }
+            finally
+            {
+                _log.Info($"入库:{count}");
+            }
         }
     }
 }

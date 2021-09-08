@@ -4,16 +4,17 @@ using System.Text;
 
 namespace GoofyAlgoTrader.Futures.Tracker
 {
-    public class Bar
+    public class MinBarModel
     {
         /// <summary>
         /// 时间
         /// </summary>
-        public string Id { get; set; }
+        public string DateTime { get; set; }
+
         /// <summary>
-        /// 交易日
+        /// 合约代码
         /// </summary>
-        public string TradingDay { get; set; }
+        public string Instrument { get; set; }
 
         /// <summary>
         /// 开盘价
@@ -45,14 +46,10 @@ namespace GoofyAlgoTrader.Futures.Tracker
         /// </summary>
         public double OpenInterest { get; set; }
 
-        /// <summary>
-        /// 前Bar的成交量:只用于中间计算
-        /// </summary>
-        public int PreVol { get; set; }
 
         /// <summary>
-        /// 分钟的tick数量 >3 才会被记录和分发
+        /// 交易日
         /// </summary>
-        public int Ticks { get; set; }
+        public string TradingDay { get; set; }
     }
 }

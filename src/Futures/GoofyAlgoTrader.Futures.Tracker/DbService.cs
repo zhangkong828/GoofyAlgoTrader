@@ -5,7 +5,7 @@ using System.Text;
 
 namespace GoofyAlgoTrader.Futures.Tracker
 {
-    public class DbRepository
+    public class DbService
     {
         public static void InitDB()
         {
@@ -29,5 +29,16 @@ namespace GoofyAlgoTrader.Futures.Tracker
                 conn.Execute(sql);
             }
         }
+
+
+        public static bool InsertBar(MinBarModel bar)
+        {
+            using (var conn = DbHelper.GetConnection())
+            {
+                var sql = "INSERT INTO GoofyAlgoTrader.Future_Min VALUES(@DateTime,@Instrument,@Open,@High,@Low,@Close,@Volume,@OpenInterest,@TradingDay)";
+                return conn.Execute(sql, bar) > 0;
+            }
+        }
     }
 }
+
